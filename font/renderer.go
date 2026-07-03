@@ -65,7 +65,7 @@ type GlyphSVG struct {
 	// and several glyphs may share the same Source
 	Source []byte
 
-	// ViewBox is the initial viewport of the SVG document :
+	// ViewBox is the initial viewport of the SVG document:
 	// the rectangle in SVG user space mapped to the em square
 	// when rendering.
 	// It is resolved from the root <svg> element attributes,

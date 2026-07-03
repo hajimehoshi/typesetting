@@ -34,12 +34,17 @@ func TestSVGViewBox(t *testing.T) {
 		{`<svg viewBox="0 0 0 128"></svg>`, font.SVGViewBox{0, 0, upem, upem}},
 		{`<svg viewBox="0 0 128 -1"></svg>`, font.SVGViewBox{0, 0, upem, upem}},
 		{`<svg viewBox="a b c d"></svg>`, font.SVGViewBox{0, 0, upem, upem}},
+		{`<svg viewBox="NaN 0 128 128"></svg>`, font.SVGViewBox{0, 0, upem, upem}},
+		{`<svg viewBox="0 0 Inf 128"></svg>`, font.SVGViewBox{0, 0, upem, upem}},
+		{`<svg viewBox="0 0 128 +infinity"></svg>`, font.SVGViewBox{0, 0, upem, upem}},
 		// width and height attributes
 		{`<svg width="100" height="200"></svg>`, font.SVGViewBox{0, 0, 100, 200}},
 		{`<svg width="100px" height="50px"></svg>`, font.SVGViewBox{0, 0, 100, 50}},
 		{`<svg width="100"></svg>`, font.SVGViewBox{0, 0, upem, upem}},
 		{`<svg width="100%" height="100%"></svg>`, font.SVGViewBox{0, 0, upem, upem}},
 		{`<svg width="12pt" height="12pt"></svg>`, font.SVGViewBox{0, 0, upem, upem}},
+		{`<svg width="NaN" height="NaN"></svg>`, font.SVGViewBox{0, 0, upem, upem}},
+		{`<svg width="Inf" height="Inf"></svg>`, font.SVGViewBox{0, 0, upem, upem}},
 		// viewBox has precedence over width and height
 		{`<svg width="100" height="200" viewBox="0 0 128 128"></svg>`, font.SVGViewBox{0, 0, 128, 128}},
 		{`<svg viewBox="invalid" width="100" height="200"></svg>`, font.SVGViewBox{0, 0, 100, 200}},
@@ -51,6 +56,8 @@ func TestSVGViewBox(t *testing.T) {
 			<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 			<svg viewBox="0 0 128 128"></svg>`, font.SVGViewBox{0, 0, 128, 128}},
 		{`<!DOCTYPE svg [ <!ENTITY foo "bar"> ]><svg viewBox="0 0 128 128"></svg>`, font.SVGViewBox{0, 0, 128, 128}},
+		{`<!DOCTYPE svg [ <!ENTITY foo "]>"> ]><svg viewBox="0 0 128 128"></svg>`, font.SVGViewBox{0, 0, 128, 128}},
+		{`<!DOCTYPE svg [ <!-- don't mind the ]> here --> ]><svg viewBox="0 0 128 128"></svg>`, font.SVGViewBox{0, 0, 128, 128}},
 		// namespace prefix on the root element
 		{`<svg:svg xmlns:svg="http://www.w3.org/2000/svg" viewBox="0 0 128 128"></svg:svg>`, font.SVGViewBox{0, 0, 128, 128}},
 		// other attributes, possibly with tricky values

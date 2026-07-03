@@ -5,6 +5,7 @@ package font
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -81,6 +82,16 @@ func svgViewBox(doc []byte, upem uint16) SVGViewBox {
 	return SVGViewBox{0, 0, em, em}
 }
 
+// parseSVGNumber parses a finite number, rejecting the "NaN" and
+// "Inf" forms accepted by [strconv.ParseFloat].
+func parseSVGNumber(s string) (float32, bool) {
+	v, err := strconv.ParseFloat(s, 32)
+	if err != nil || math.IsNaN(v) || math.IsInf(v, 0) {
+		return 0, false
+	}
+	return float32(v), true
+}
+
 // parseSVGViewBox parses the value of a viewBox attribute:
 // four numbers separated by whitespace and/or commas.
 func parseSVGViewBox(s string) (SVGViewBox, bool) {
@@ -92,11 +103,11 @@ func parseSVGViewBox(s string) (SVGViewBox, bool) {
 	}
 	var nums [4]float32
 	for i, field := range fields {
-		v, err := strconv.ParseFloat(field, 32)
-		if err != nil {
+		v, ok := parseSVGNumber(field)
+		if !ok {
 			return SVGViewBox{}, false
 		}
-		nums[i] = float32(v)
+		nums[i] = v
 	}
 	if nums[2] <= 0 || nums[3] <= 0 {
 		return SVGViewBox{}, false
@@ -109,11 +120,11 @@ func parseSVGViewBox(s string) (SVGViewBox, bool) {
 func parseSVGLength(s string) (float32, bool) {
 	s = strings.TrimSpace(s)
 	s = strings.TrimSuffix(s, "px")
-	v, err := strconv.ParseFloat(s, 32)
-	if err != nil || v <= 0 {
+	v, ok := parseSVGNumber(s)
+	if !ok || v <= 0 {
 		return 0, false
 	}
-	return float32(v), true
+	return v, true
 }
 
 func isXMLSpace(c byte) bool { return c == ' ' || c == '\t' || c == '\r' || c == '\n' }
@@ -162,10 +173,30 @@ func svgRootAttributes(doc []byte) (viewBox, width, height string, ok bool) {
 
 // svgDoctypeEnd returns the index just after the closing '>' of the
 // doctype declaration starting [doc], or -1.
+// Brackets, quotes and '>' inside quoted literals and comments are
+// ignored, so that an internal subset does not end the scan early.
 func svgDoctypeEnd(doc []byte) int {
-	depth := 0 // nesting in the internal subset brackets
+	depth := 0     // nesting in the internal subset brackets
+	var quote byte // current quoted literal delimiter, or 0
 	for i := 2; i < len(doc); i++ {
-		switch doc[i] {
+		c := doc[i]
+		if quote != 0 {
+			if c == quote {
+				quote = 0
+			}
+			continue
+		}
+		switch c {
+		case '"', '\'':
+			quote = c
+		case '<':
+			if bytes.HasPrefix(doc[i:], []byte("<!--")) { // comment
+				end := bytes.Index(doc[i:], []byte("-->"))
+				if end == -1 {
+					return -1
+				}
+				i += end + 2
+			}
 		case '[':
 			depth++
 		case ']':
