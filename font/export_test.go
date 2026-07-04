@@ -2,5 +2,5 @@
 
 package font
 
-// SVGDocViewBox exposes [svgViewBox] for tests.
-func SVGDocViewBox(doc []byte, upem uint16) SVGViewBox { return svgViewBox(doc, upem) }
+// SVGViewBoxForTest exposes [svgViewBox] for tests.
+func SVGViewBoxForTest(doc []byte, upem uint16) SVGViewBox { return svgViewBox(doc, upem) }
